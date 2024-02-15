@@ -129,17 +129,10 @@ OPTION ( ASSIMP_IGNORE_GIT_HASH
    OFF
 )
 
-IF (WIN32)
-  OPTION( ASSIMP_BUILD_ZLIB
-    "Build your own zlib"
-    ON
-  )
-ELSE()
-  OPTION( ASSIMP_BUILD_ZLIB
-    "Build your own zlib"
-    ON
-  )
-ENDIF()
+OPTION( ASSIMP_BUILD_ZLIB
+"Build your own zlib"
+ON
+)
 
 IF (WIN32)
   # Use subset of Windows.h
@@ -471,55 +464,57 @@ ENDIF()
 
 # Search for external dependencies, and build them from source if not found
 # Search for zlib
-IF(ASSIMP_HUNTER_ENABLED)
-  hunter_add_package(ZLIB)
-  find_package(ZLIB CONFIG REQUIRED)
+IF(ASSIMP_BUILD_ZLIB)
+	IF(ASSIMP_HUNTER_ENABLED)
+	  hunter_add_package(ZLIB)
+	  find_package(ZLIB CONFIG REQUIRED)
 
-  add_definitions(-DASSIMP_BUILD_NO_OWN_ZLIB)
-  set(ZLIB_FOUND TRUE)
-  set(ZLIB_LIBRARIES ZLIB::zlib)
-  set(ASSIMP_BUILD_MINIZIP TRUE)
-ELSE()
-  # If the zlib is already found outside, add an export in case assimpTargets can't find it.
-  IF( ZLIB_FOUND )
-    INSTALL( TARGETS zlib zlibstatic
-        EXPORT "${TARGETS_EXPORT_NAME}")
-  ENDIF()
+	  add_definitions(-DASSIMP_BUILD_NO_OWN_ZLIB)
+	  set(ZLIB_FOUND TRUE)
+	  set(ZLIB_LIBRARIES ZLIB::zlib)
+	  set(ASSIMP_BUILD_MINIZIP TRUE)
+	ELSE()
+	  # If the zlib is already found outside, add an export in case assimpTargets can't find it.
+	  IF( ZLIB_FOUND )
+		INSTALL( TARGETS zlib
+			EXPORT "${TARGETS_EXPORT_NAME}")
+	  ENDIF()
 
-  IF ( NOT ASSIMP_BUILD_ZLIB )
-    FIND_PACKAGE(ZLIB)
-  ENDIF()
+	  IF ( NOT ASSIMP_BUILD_ZLIB )
+		FIND_PACKAGE(ZLIB)
+	  ENDIF()
 
-  IF ( NOT ZLIB_FOUND AND NOT ASSIMP_BUILD_ZLIB )
-    message( FATAL_ERROR
-      "Build configured with -DASSIMP_BUILD_ZLIB=OFF but unable to find zlib"
-    )
-  ELSEIF( NOT ZLIB_FOUND )
-    MESSAGE(STATUS "compiling zlib from sources")
-    INCLUDE(CheckIncludeFile)
-    INCLUDE(CheckTypeSize)
-    INCLUDE(CheckFunctionExists)
+	  IF ( NOT ZLIB_FOUND AND NOT ASSIMP_BUILD_ZLIB )
+		message( FATAL_ERROR
+		  "Build configured with -DASSIMP_BUILD_ZLIB=OFF but unable to find zlib"
+		)
+	  ELSEIF( NOT ZLIB_FOUND )
+		MESSAGE(STATUS "compiling zlib from sources")
+		INCLUDE(CheckIncludeFile)
+		INCLUDE(CheckTypeSize)
+		INCLUDE(CheckFunctionExists)
 
-    # Explicitly turn off ASM686 and AMD64 cmake options.
-    # The AMD64 option causes a build failure on MSVC and the ASM builds seem to have problems:
-    #		https://github.com/madler/zlib/issues/41#issuecomment-125848075
-    # Also prevents these options from "polluting" the cmake options if assimp is being
-    # included as a submodule.
-    set( ASM686 FALSE CACHE INTERNAL "Override ZLIB flag to turn off assembly" FORCE )
-    set( AMD64 FALSE CACHE INTERNAL "Override ZLIB flag to turn off assembly" FORCE )
+		# Explicitly turn off ASM686 and AMD64 cmake options.
+		# The AMD64 option causes a build failure on MSVC and the ASM builds seem to have problems:
+		#		https://github.com/madler/zlib/issues/41#issuecomment-125848075
+		# Also prevents these options from "polluting" the cmake options if assimp is being
+		# included as a submodule.
+		set( ASM686 FALSE CACHE INTERNAL "Override ZLIB flag to turn off assembly" FORCE )
+		set( AMD64 FALSE CACHE INTERNAL "Override ZLIB flag to turn off assembly" FORCE )
 
-    # compile from sources
-    ADD_SUBDIRECTORY(contrib/zlib)
-    SET(ZLIB_FOUND 1)
-    SET(ZLIB_LIBRARIES zlibstatic)
-    SET(ZLIB_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/contrib/zlib ${CMAKE_CURRENT_BINARY_DIR}/contrib/zlib)
-    # need to ensure we don't link with system zlib or minizip as well.
-    SET(ASSIMP_BUILD_MINIZIP 1)
-  ELSE()
-    ADD_DEFINITIONS(-DASSIMP_BUILD_NO_OWN_ZLIB)
-    SET(ZLIB_LIBRARIES_LINKED -lz)
-  ENDIF()
-  INCLUDE_DIRECTORIES(${ZLIB_INCLUDE_DIR})
+		# compile from sources
+		ADD_SUBDIRECTORY(contrib/zlib)
+		SET(ZLIB_FOUND 1)
+		SET(ZLIB_LIBRARIES zlibstatic)
+		SET(ZLIB_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/contrib/zlib ${CMAKE_CURRENT_BINARY_DIR}/contrib/zlib)
+		# need to ensure we don't link with system zlib or minizip as well.
+		SET(ASSIMP_BUILD_MINIZIP 1)
+	  ELSE()
+		ADD_DEFINITIONS(-DASSIMP_BUILD_NO_OWN_ZLIB)
+		SET(ZLIB_LIBRARIES_LINKED -lz)
+	  ENDIF()
+	  INCLUDE_DIRECTORIES(${ZLIB_INCLUDE_DIR})
+	ENDIF()
 ENDIF()
 
 IF( NOT IOS )
